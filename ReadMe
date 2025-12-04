@@ -1,0 +1,247 @@
+# DeepFake Detector - Web Interface Setup Guide
+
+## 📋 Prerequisites
+
+### 1. Install Python (3.8 or higher)
+- Download from [python.org](https://www.python.org/downloads/)
+- Make sure to check "Add Python to PATH" during installation
+
+### 2. Install FFmpeg (Required for audio extraction)
+
+**Windows:**
+1. Download from [ffmpeg.org](https://ffmpeg.org/download.html)
+2. Extract the zip file
+3. Add the `bin` folder to your System PATH
+4. Verify: Open CMD and type `ffmpeg -version`
+
+**macOS:**
+```bash
+brew install ffmpeg
+```
+
+**Ubuntu/Debian:**
+```bash
+sudo apt-get update
+sudo apt-get install ffmpeg
+```
+
+## 🚀 Installation Steps
+
+### Step 1: Create Project Directory
+```bash
+mkdir deepfake_detector
+cd deepfake_detector
+```
+
+### Step 2: Create Virtual Environment (Recommended)
+```bash
+# Windows
+python -m venv venv
+venv\Scripts\activate
+
+# macOS/Linux
+python3 -m venv venv
+source venv/bin/activate
+```
+
+### Step 3: Install Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### Step 4: Create Directory Structure
+```
+deepfake_detector/
+├── app.py                          # Web interface
+├── deepfake_detector.py            # Core detection system
+├── predict.py                      # Prediction functions
+├── train_models.py                 # Training script
+├── requirements.txt                # Dependencies
+├── templates/                      # HTML templates
+│   └── index.html                  # Web interface HTML
+├── uploads/                        # Temporary upload folder (auto-created)
+├── data/                           # Training data
+│   ├── videos/
+│   │   ├── real/                   # Real videos for training
+│   │   └── fake/                   # Fake videos for training
+│   └── audio/
+│       ├── real/                   # Real audio for training
+│       └── fake/                   # Fake audio for training
+├── best_video_model.pth            # Trained video model (after training)
+├── best_audio_model.h5             # Trained audio model (after training)
+└── video_scaler.pkl                # Feature scaler (after training)
+```
+
+### Step 5: Create Templates Directory
+```bash
+mkdir templates
+```
+Place the `index.html` file in the `templates` folder.
+
+## 🎓 Training the Models
+
+### Step 1: Prepare Training Data
+1. Create the data directory structure:
+```bash
+mkdir -p data/videos/real data/videos/fake data/audio/real data/audio/fake
+```
+
+2. Add your training videos:
+   - Place real videos in `data/videos/real/`
+   - Place deepfake videos in `data/videos/fake/`
+   - Place real audio in `data/audio/real/`
+   - Place fake audio in `data/audio/fake/`
+
+### Step 2: Train the Models
+```bash
+python train_models.py
+```
+
+This will:
+- Extract features from all videos and audio files
+- Train the video model (PyTorch ANN)
+- Train the audio model (TensorFlow VGG19)
+- Save trained models and scaler
+
+**Note:** You need at least 10 videos of each type (real/fake) for training.
+
+## 🌐 Running the Web Interface
+
+### Start the Web Server
+```bash
+python app.py
+```
+
+The server will start at `http://localhost:5000`
+
+### Using the Web Interface
+1. Open your browser and go to `http://localhost:5000`
+2. Click or drag-and-drop a video file
+3. Click "Analyze Video"
+4. Wait for the analysis to complete
+5. View the results showing:
+   - Video analysis (facial features)
+   - Audio analysis (mel-spectrogram)
+   - Final verdict (REAL or DEEPFAKE)
+   - Confidence scores
+
+## 📝 Command Line Usage
+
+### Analyze Single Video (with audio extraction)
+```python
+from predict import predict_video_with_audio_extraction
+
+result = predict_video_with_audio_extraction('path/to/video.mp4')
+```
+
+### Analyze Video Only
+```python
+from predict import predict_single_video
+
+predict_single_video('path/to/video.mp4')
+```
+
+### Analyze Audio Only
+```python
+from predict import predict_single_audio
+
+predict_single_audio('path/to/audio.wav')
+```
+
+### Batch Processing
+```python
+from predict import batch_predict_videos
+
+batch_predict_videos('videos_folder/', output_file='results.csv')
+```
+
+## 🔧 Troubleshooting
+
+### Issue: "ffmpeg not found"
+**Solution:** Make sure ffmpeg is installed and added to PATH. Restart your terminal after installation.
+
+### Issue: "No face detected"
+**Solution:** 
+- Ensure the video contains clearly visible faces
+- Try videos with better lighting
+- Face should be facing the camera
+
+### Issue: "Not enough data to train"
+**Solution:** Add more training videos. You need at least 10 videos of each type (real/fake).
+
+### Issue: "Model not found"
+**Solution:** Train the models first using `python train_models.py`
+
+### Issue: "Out of memory"
+**Solution:** 
+- Reduce batch size in training
+- Process fewer frames per video
+- Use a machine with more RAM/GPU
+
+### Issue: CUDA/GPU errors
+**Solution:**
+- The code will automatically use CPU if GPU is not available
+- For GPU support, install PyTorch with CUDA: 
+  ```bash
+  pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+  ```
+
+## 📊 Model Performance
+
+The system analyzes:
+
+**Video Features (13 features):**
+1. Nose size
+2. Lip size
+3. GLCM Contrast
+4. GLCM Correlation
+5. Eye aspect ratio
+6. Inter-pupillary distance
+7. Cheekbone height
+8-10. Head pose (pitch, yaw, roll)
+11-13. Skin tone (L, C1, C2)
+
+**Audio Features:**
+- Mel-spectrogram (128 mel bands)
+- Analyzed by VGG19 neural network
+
+**Classification:**
+- Video: ANN (Artificial Neural Network)
+- Audio: VGG19 (Convolutional Neural Network)
+- Final: Multimodal fusion (detects deepfake if either component is fake)
+
+## 🎯 Tips for Best Results
+
+1. **Video Quality:**
+   - Use good lighting
+   - Clear face visibility
+   - Minimal motion blur
+
+2. **Training Data:**
+   - More data = better accuracy
+   - Balanced dataset (equal real/fake samples)
+   - Diverse samples (different people, lighting, angles)
+
+3. **Audio Quality:**
+   - Clear audio without background noise
+   - Sufficient length (4+ seconds)
+   - Good audio bitrate
+
+## 📚 Additional Resources
+
+- **Paper Reference:** "A Multimodal Framework for DeepFake Detection"
+- **FFmpeg Documentation:** https://ffmpeg.org/documentation.html
+- **PyTorch Documentation:** https://pytorch.org/docs/
+- **TensorFlow Documentation:** https://www.tensorflow.org/api_docs
+
+## 🆘 Support
+
+For issues and questions:
+1. Check the troubleshooting section above
+2. Verify all dependencies are installed correctly
+3. Ensure training data is properly organized
+4. Check that ffmpeg is installed and accessible
+
+## 📄 License
+
+This is an educational implementation based on academic research. Please cite the original paper when using this code for research purposes.
