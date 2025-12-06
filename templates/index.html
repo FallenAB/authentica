@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DeepFake Detector</title>
+    <title>AI DeepFake Detector</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+
         * {
             margin: 0;
             padding: 0;
@@ -12,126 +14,211 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Poppins', sans-serif;
+            background: #0a1628;
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             padding: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Animated gradient blobs */
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.6;
+            animation: float 20s infinite ease-in-out;
+        }
+
+        .blob1 {
+            width: 500px;
+            height: 500px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            top: -200px;
+            left: -200px;
+            animation-delay: 0s;
+        }
+
+        .blob2 {
+            width: 400px;
+            height: 400px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            bottom: -150px;
+            right: -150px;
+            animation-delay: 5s;
+        }
+
+        .blob3 {
+            width: 350px;
+            height: 350px;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation-delay: 10s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(50px, -50px) scale(1.1); }
+            66% { transform: translate(-50px, 50px) scale(0.9); }
+        }
+
+        /* Sparkle stars */
+        .star {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
         }
 
         .container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            max-width: 800px;
+            position: relative;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 30px;
+            padding: 50px 40px;
+            max-width: 550px;
             width: 100%;
-            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.5);
         }
 
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
             text-align: center;
+            margin-bottom: 35px;
+        }
+
+        .header-title {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 600;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
         }
 
         .header h1 {
             font-size: 2.5em;
-            margin-bottom: 10px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 5px;
         }
 
-        .header p {
-            font-size: 1.1em;
-            opacity: 0.9;
-        }
-
-        .content {
-            padding: 40px;
-        }
-
-        .upload-area {
-            border: 3px dashed #667eea;
-            border-radius: 15px;
-            padding: 60px 40px;
+        .upload-box {
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px dashed rgba(100, 200, 255, 0.5);
+            border-radius: 20px;
+            padding: 60px 30px;
             text-align: center;
             transition: all 0.3s ease;
             cursor: pointer;
-            background: #f8f9ff;
+            position: relative;
+            margin-bottom: 30px;
         }
 
-        .upload-area:hover {
-            border-color: #764ba2;
-            background: #f0f2ff;
-        }
-
-        .upload-area.dragover {
-            border-color: #764ba2;
-            background: #e8ebff;
+        .upload-box:hover {
+            border-color: rgba(100, 200, 255, 0.8);
+            background: rgba(255, 255, 255, 0.05);
             transform: scale(1.02);
         }
 
-        .upload-icon {
-            font-size: 4em;
-            margin-bottom: 20px;
-            color: #667eea;
+        .upload-box.dragover {
+            border-color: #4facfe;
+            background: rgba(79, 172, 254, 0.1);
+            transform: scale(1.02);
+        }
+
+        .cloud-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            position: relative;
+        }
+
+        .cloud-icon svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 0 20px rgba(79, 172, 254, 0.5));
         }
 
         .upload-text {
-            font-size: 1.3em;
-            color: #333;
+            font-size: 1.2em;
+            color: white;
+            font-weight: 600;
             margin-bottom: 10px;
         }
 
         .upload-hint {
-            color: #666;
-            font-size: 0.95em;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.9em;
+            line-height: 1.6;
         }
 
         input[type="file"] {
             display: none;
         }
 
-        .btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .analyze-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
             color: white;
             border: none;
-            padding: 15px 40px;
+            padding: 18px 40px;
             font-size: 1.1em;
+            font-weight: 600;
             border-radius: 50px;
             cursor: pointer;
             transition: all 0.3s ease;
-            margin-top: 20px;
-            display: inline-block;
+            font-family: 'Poppins', sans-serif;
+            box-shadow: 0 10px 30px rgba(79, 172, 254, 0.3);
         }
 
-        .btn:hover {
+        .analyze-btn:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 15px 40px rgba(79, 172, 254, 0.5);
         }
 
-        .btn:disabled {
-            background: #ccc;
+        .analyze-btn:disabled {
+            background: rgba(255, 255, 255, 0.1);
             cursor: not-allowed;
-            transform: none;
+            box-shadow: none;
         }
 
         .selected-file {
-            margin-top: 20px;
-            padding: 15px;
-            background: #e8f5e9;
+            margin-bottom: 20px;
+            padding: 15px 20px;
+            background: rgba(76, 175, 80, 0.1);
+            border-left: 4px solid #4caf50;
             border-radius: 10px;
             display: none;
+            color: #4caf50;
+            font-size: 0.95em;
         }
 
         .selected-file.show {
             display: block;
+            animation: slideIn 0.3s ease;
         }
 
-        .selected-file-name {
-            font-weight: bold;
-            color: #2e7d32;
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .progress {
@@ -145,23 +232,56 @@
 
         .progress-bar {
             width: 100%;
-            height: 30px;
-            background: #e0e0e0;
-            border-radius: 15px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
             overflow: hidden;
             position: relative;
         }
 
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
             width: 0%;
             transition: width 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
+            border-radius: 10px;
+            position: relative;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top: 4px solid #4facfe;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+
+        .spinner.show {
+            display: block;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
         .results {
@@ -180,44 +300,68 @@
         }
 
         .result-card {
-            padding: 25px;
-            border-radius: 15px;
+            padding: 30px;
+            border-radius: 20px;
             margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .result-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: inherit;
+            filter: blur(20px);
+            opacity: 0.5;
+            z-index: -1;
         }
 
         .result-card.real {
-            background: linear-gradient(135deg, #00c853 0%, #64dd17 100%);
-            color: white;
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.2) 0%, rgba(102, 187, 106, 0.2) 100%);
+            border: 1px solid rgba(76, 175, 80, 0.3);
         }
 
         .result-card.fake {
-            background: linear-gradient(135deg, #ff1744 0%, #f50057 100%);
-            color: white;
+            background: linear-gradient(135deg, rgba(244, 67, 54, 0.2) 0%, rgba(239, 83, 80, 0.2) 100%);
+            border: 1px solid rgba(244, 67, 54, 0.3);
         }
 
         .result-title {
             font-size: 2em;
             margin-bottom: 15px;
-            font-weight: bold;
+            font-weight: 700;
+            color: white;
         }
 
         .result-confidence {
             font-size: 1.2em;
-            margin-bottom: 10px;
+            margin-bottom: 20px;
+            color: rgba(255, 255, 255, 0.9);
         }
 
         .detail-section {
-            background: white;
-            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
             padding: 20px;
-            margin-top: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .detail-section h3 {
+            margin-bottom: 15px;
+            color: white;
+            font-size: 1.1em;
         }
 
         .detail-item {
             display: flex;
             justify-content: space-between;
+            align-items: center;
             padding: 12px 0;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .detail-item:last-child {
@@ -225,133 +369,181 @@
         }
 
         .detail-label {
-            font-weight: bold;
-            color: #333;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
         }
 
         .detail-value {
-            color: #666;
+            color: rgba(255, 255, 255, 0.7);
         }
 
         .badge {
             display: inline-block;
-            padding: 5px 15px;
+            padding: 6px 16px;
             border-radius: 20px;
-            font-size: 0.9em;
-            font-weight: bold;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-right: 8px;
         }
 
         .badge.real {
-            background: #4caf50;
-            color: white;
+            background: rgba(76, 175, 80, 0.2);
+            color: #4caf50;
+            border: 1px solid rgba(76, 175, 80, 0.3);
         }
 
         .badge.fake {
-            background: #f44336;
-            color: white;
+            background: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+            border: 1px solid rgba(244, 67, 54, 0.3);
         }
 
         .error {
-            background: #ffebee;
-            color: #c62828;
-            padding: 15px;
+            background: rgba(244, 67, 54, 0.1);
+            color: #f44336;
+            padding: 15px 20px;
             border-radius: 10px;
             margin-top: 20px;
             display: none;
+            border-left: 4px solid #f44336;
         }
 
         .error.show {
             display: block;
+            animation: shake 0.5s ease;
         }
 
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-            display: none;
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
         }
 
-        .spinner.show {
-            display: block;
+        .reset-btn {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 15px 40px;
+            font-size: 1em;
+            font-weight: 600;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Poppins', sans-serif;
+            margin-top: 15px;
         }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .reset-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .container {
+                padding: 30px 20px;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .upload-box {
+                padding: 40px 20px;
+            }
         }
     </style>
 </head>
 <body>
+    <!-- Animated background blobs -->
+    <div class="blob blob1"></div>
+    <div class="blob blob2"></div>
+    <div class="blob blob3"></div>
+
+    <!-- Sparkle stars -->
+    <div class="star" style="top: 10%; left: 15%; animation-delay: 0s;"></div>
+    <div class="star" style="top: 20%; right: 20%; animation-delay: 1s;"></div>
+    <div class="star" style="bottom: 15%; left: 25%; animation-delay: 2s;"></div>
+    <div class="star" style="bottom: 25%; right: 15%; animation-delay: 1.5s;"></div>
+    <div class="star" style="top: 40%; left: 10%; animation-delay: 0.5s;"></div>
+    <div class="star" style="top: 60%; right: 10%; animation-delay: 2.5s;"></div>
+
     <div class="container">
         <div class="header">
-            <h1>🔍 DeepFake Detector</h1>
-            <p>Upload a video to analyze for deepfake content</p>
+            <div class="header-title">Poppins Semibold</div>
+            <h1>AI DeepFake Detector</h1>
         </div>
 
-        <div class="content">
-            <div class="upload-area" id="uploadArea">
-                <div class="upload-icon">📹</div>
-                <div class="upload-text">Drop video here or click to browse</div>
-                <div class="upload-hint">Supported formats: MP4, AVI, MOV, MKV (Max 100MB)</div>
-                <input type="file" id="fileInput" accept="video/mp4,video/avi,video/x-msvideo,video/quicktime,video/x-matroska">
+        <div class="upload-box" id="uploadArea">
+            <div class="cloud-icon">
+                <svg viewBox="0 0 100 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M70 35C70 20.5 58.5 10 45 10C33.5 10 24 17.5 21 28C10.5 28.5 2 36.5 2 47C2 57.5 10.5 66 21 66H68C76.5 66 83.5 59 83.5 50.5C83.5 42.5 77.5 35.5 70 35Z" 
+                          stroke="url(#gradient)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M50 42L50 60M50 42L44 48M50 42L56 48" 
+                          stroke="url(#gradient)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                    <defs>
+                        <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#4facfe;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#00f2fe;stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                </svg>
             </div>
+            <div class="upload-text">Drop your video here or click to browse</div>
+            <div class="upload-hint">Supported formats: MP4, AVI, MKV, MOV<br>Max 50Mb</div>
+            <input type="file" id="fileInput" accept="video/mp4,video/avi,video/x-msvideo,video/quicktime,video/x-matroska">
+        </div>
 
-            <div class="selected-file" id="selectedFile">
-                <span>Selected: </span>
-                <span class="selected-file-name" id="fileName"></span>
+        <div class="selected-file" id="selectedFile">
+            <strong>Selected:</strong> <span id="fileName"></span>
+        </div>
+
+        <button class="analyze-btn" id="analyzeBtn" disabled>Analyze Video</button>
+
+        <div class="progress" id="progress">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
             </div>
+        </div>
 
-            <div style="text-align: center;">
-                <button class="btn" id="analyzeBtn" disabled>Analyze Video</button>
-            </div>
+        <div class="spinner" id="spinner"></div>
 
-            <div class="progress" id="progress">
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progressFill">Processing...</div>
-                </div>
-            </div>
+        <div class="error" id="error"></div>
 
-            <div class="spinner" id="spinner"></div>
-
-            <div class="error" id="error"></div>
-
-            <div class="results" id="results">
-                <div class="result-card" id="resultCard">
-                    <div class="result-title" id="resultTitle">✅ REAL VIDEO</div>
-                    <div class="result-confidence" id="resultConfidence">Confidence: 95.2%</div>
+        <div class="results" id="results">
+            <div class="result-card" id="resultCard">
+                <div class="result-title" id="resultTitle">✅ REAL VIDEO</div>
+                <div class="result-confidence" id="resultConfidence">Confidence: 95.2%</div>
+                
+                <div class="detail-section">
+                    <h3>Analysis Details</h3>
                     
-                    <div class="detail-section">
-                        <h3 style="margin-bottom: 15px; color: #333;">Analysis Details</h3>
-                        
-                        <div class="detail-item">
-                            <span class="detail-label">📹 Video Analysis</span>
-                            <span class="detail-value">
-                                <span class="badge" id="videoLabel">REAL</span>
-                                <span id="videoProbability">(0.234)</span>
-                            </span>
-                        </div>
-                        
-                        <div class="detail-item">
-                            <span class="detail-label">🔊 Audio Analysis</span>
-                            <span class="detail-value">
-                                <span class="badge" id="audioLabel">REAL</span>
-                                <span id="audioProbability">(0.156)</span>
-                            </span>
-                        </div>
-                        
-                        <div class="detail-item">
-                            <span class="detail-label">Overall Score</span>
-                            <span class="detail-value" id="overallScore">0.234</span>
-                        </div>
+                    <div class="detail-item">
+                        <span class="detail-label">📹 Video Analysis</span>
+                        <span class="detail-value">
+                            <span class="badge real" id="videoLabel">REAL</span>
+                            <span id="videoProbability">(0.234)</span>
+                        </span>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <span class="detail-label">🔊 Audio Analysis</span>
+                        <span class="detail-value">
+                            <span class="badge real" id="audioLabel">REAL</span>
+                            <span id="audioProbability">(0.156)</span>
+                        </span>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <span class="detail-label">Overall Score</span>
+                        <span class="detail-value" id="overallScore">0.234</span>
                     </div>
                 </div>
-
-                <button class="btn" onclick="resetForm()">Analyze Another Video</button>
             </div>
+
+            <button class="reset-btn" onclick="resetForm()">Analyze Another Video</button>
         </div>
     </div>
 
@@ -484,9 +676,15 @@
             videoProbability.textContent = `(${data.video_prediction.toFixed(3)})`;
 
             // Audio analysis
-            audioLabel.textContent = data.audio_label;
-            audioLabel.className = 'badge ' + (data.audio_label === 'DEEPFAKE' ? 'fake' : 'real');
-            audioProbability.textContent = `(${data.audio_prediction.toFixed(3)})`;
+            if (data.audio_prediction !== null) {
+                audioLabel.textContent = data.audio_label;
+                audioLabel.className = 'badge ' + (data.audio_label === 'DEEPFAKE' ? 'fake' : 'real');
+                audioProbability.textContent = `(${data.audio_prediction.toFixed(3)})`;
+            } else {
+                audioLabel.textContent = 'N/A';
+                audioLabel.className = 'badge';
+                audioProbability.textContent = '(not available)';
+            }
 
             // Overall score
             overallScore.textContent = data.confidence.toFixed(3);
