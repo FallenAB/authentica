@@ -647,6 +647,11 @@ def train_audio_model(X_train, y_train, X_val, y_val, epochs=30, batch_size=32):
 
 # ==================== MULTIMODAL DETECTION SYSTEM ====================
 
+"""
+FIXED: MultimodalDeepFakeDetector class with robust model loading
+Replace the MultimodalDeepFakeDetector class in deepfake_detector.py (around line 659)
+"""
+
 class MultimodalDeepFakeDetector:
     """Combined video and audio deepfake detection system"""
     
@@ -663,14 +668,59 @@ class MultimodalDeepFakeDetector:
         # Video model (PyTorch)
         self.video_model = DeepFakeVideoANN(input_size=13).to(self.device)
         if os.path.exists(video_model_path):
-            self.video_model.load_state_dict(torch.load(video_model_path))
+            try:
+                self.video_model.load_state_dict(
+                    torch.load(video_model_path, map_location=self.device)
+                )
+                print("✅ Video model loaded successfully")
+            except Exception as e:
+                print(f"⚠️  Could not load video model: {e}")
+                print("   Please train the video model first using train_models.py")
         self.video_model.eval()
         
-        # Audio model (TensorFlow)
+        # Audio model (TensorFlow) - FIXED LOADING WITH MULTIPLE FALLBACKS
+        self.audio_model = None
         if os.path.exists(audio_model_path):
-            self.audio_model = tf.keras.models.load_model(audio_model_path)
+            try:
+                # Method 1: Try loading with compile=False
+                self.audio_model = tf.keras.models.load_model(
+                    audio_model_path, 
+                    compile=False
+                )
+                # Recompile the model
+                self.audio_model.compile(
+                    optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
+                    loss='binary_crossentropy',
+                    metrics=['accuracy']
+                )
+                print("✅ Audio model loaded successfully")
+            except Exception as e1:
+                print(f"⚠️  First loading attempt failed: {e1}")
+                
+                try:
+                    # Method 2: Try with safe_mode
+                    self.audio_model = tf.keras.models.load_model(
+                        audio_model_path,
+                        safe_mode=False,
+                        compile=False
+                    )
+                    self.audio_model.compile(
+                        optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
+                        loss='binary_crossentropy',
+                        metrics=['accuracy']
+                    )
+                    print("✅ Audio model loaded successfully (safe_mode=False)")
+                except Exception as e2:
+                    print(f"⚠️  Could not load audio model: {e2}")
+                    print("\n   SOLUTION: Please retrain the audio model:")
+                    print("   1. Run: python train_models.py")
+                    print("   2. Or use video-only detection for now")
+                    print("\n   Continuing with VIDEO-ONLY detection...\n")
+                    self.audio_model = None
         else:
-            self.audio_model = None
+            print(f"⚠️  Audio model not found: {audio_model_path}")
+            print("   Train the model using: python train_models.py")
+            print("   Or use video-only detection")
         
         # Scaler for video features
         self.scaler = StandardScaler()
@@ -695,6 +745,7 @@ class MultimodalDeepFakeDetector:
     def predict_audio(self, audio_path):
         """Predict if audio is deepfake"""
         if self.audio_model is None:
+            print("⚠️  Audio model not available, skipping audio analysis")
             return None
         
         mel_spec = self.audio_extractor.extract_mel_spectrogram(audio_path)
@@ -721,7 +772,7 @@ class MultimodalDeepFakeDetector:
             }
         """
         video_pred = self.predict_video(video_path)
-        audio_pred = self.predict_audio(audio_path)
+        audio_pred = self.predict_audio(audio_path) if audio_path else None
         
         # Classify as deepfake if either is above threshold
         is_deepfake = (video_pred and video_pred > threshold) or \

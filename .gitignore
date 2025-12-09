@@ -1,1 +1,5 @@
 best_audio_model.pth
+.venv/
+venv/
+__pycache__/
+.vscode/

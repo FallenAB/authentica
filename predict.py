@@ -368,7 +368,7 @@ def main():
     print("   batch_predict_videos('videos_folder/')")
     
     print("\n" + "="*60)
-    
+    predict_video_with_audio_extraction('H:/Python/test_video.mp4')
     # Example usage (uncomment to use)
     # predict_video_with_audio_extraction('test_video.mp4')
 
