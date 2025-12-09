@@ -15,7 +15,7 @@ torchvision==0.15.2
 tensorflow==2.13.0
 
 # Optional: dlib for better facial landmark detection
-# dlib==19.24.2  # Uncomment if you can install dlib
+dlib==19.24.2  # Uncomment if you can install dlib
 
 # Web Interface
 Flask==2.3.2
