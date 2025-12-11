@@ -610,6 +610,11 @@ def create_audio_model(input_shape=(224, 224, 3)):
     return model
 
 
+# Compatibility wrapper used by train_models.py
+def build_audio_model(*args, **kwargs):
+    return create_audio_model(*args, **kwargs)
+
+
 def train_audio_model(X_train, y_train, X_val, y_val, epochs=30, batch_size=32):
     """Train VGG19 model for audio classification"""
     
