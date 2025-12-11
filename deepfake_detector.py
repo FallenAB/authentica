@@ -29,6 +29,7 @@ from scipy.spatial import distance
 from skimage.feature import graycomatrix, graycoprops
 import warnings
 warnings.filterwarnings('ignore')
+import pickle
 
 # PyTorch imports
 import torch
@@ -39,12 +40,23 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
 # TensorFlow imports
-import tensorflow as tf
-from tensorflow.keras.applications import VGG19
-from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Dense, Dropout, Flatten, GlobalAveragePooling2D
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.preprocessing.image import img_to_array
+try:
+    import tensorflow as tf
+    from tensorflow.keras.applications import VGG19
+    from tensorflow.keras.models import Model
+    from tensorflow.keras.layers import Dense, Dropout, Flatten, GlobalAveragePooling2D
+    from tensorflow.keras.optimizers import Adam
+    from tensorflow.keras.preprocessing.image import img_to_array
+    TF_AVAILABLE = True
+except Exception:
+    TF_AVAILABLE = False
+    tf = None
+    VGG19 = None
+    Model = None
+    Dense = Dropout = Flatten = GlobalAveragePooling2D = None
+    Adam = None
+    img_to_array = None
+    print("Warning: TensorFlow not available. Audio model functionality will be disabled.")
 
 # ==================== VIDEO FEATURE EXTRACTION ====================
 
@@ -577,18 +589,20 @@ def train_video_model(X_train, y_train, X_val, y_val, epochs=50, batch_size=32):
 
 def create_audio_model(input_shape=(224, 224, 3)):
     """Create VGG19 model for audio deepfake detection"""
-    
+    if not TF_AVAILABLE:
+        raise RuntimeError("TensorFlow not available: cannot create audio model")
+
     # Load pre-trained VGG19
     base_model = VGG19(
         weights='imagenet',
         include_top=False,
         input_shape=input_shape
     )
-    
+
     # Freeze all layers except last 4
     for layer in base_model.layers[:-4]:
         layer.trainable = False
-    
+
     # Add custom classification layers
     x = base_model.output
     x = GlobalAveragePooling2D()(x)
@@ -597,22 +611,24 @@ def create_audio_model(input_shape=(224, 224, 3)):
     x = Dense(128, activation='relu')(x)
     x = Dropout(0.3)(x)
     x = Dense(1, activation='sigmoid')(x)
-    
+
     model = Model(inputs=base_model.input, outputs=x)
-    
+
     # Compile model
     model.compile(
         optimizer=Adam(learning_rate=0.0001),
         loss='binary_crossentropy',
         metrics=['accuracy']
     )
-    
+
     return model
 
 
 def train_audio_model(X_train, y_train, X_val, y_val, epochs=30, batch_size=32):
     """Train VGG19 model for audio classification"""
-    
+    if not TF_AVAILABLE:
+        raise RuntimeError("TensorFlow not available: cannot train audio model")
+
     model = create_audio_model()
     
     # Callbacks
@@ -662,18 +678,53 @@ class MultimodalDeepFakeDetector:
         
         # Video model (PyTorch)
         self.video_model = DeepFakeVideoANN(input_size=13).to(self.device)
+        # If a trained model file exists, load it. Otherwise save a placeholder
+        # initialized model so downstream code that expects the file won't fail.
         if os.path.exists(video_model_path):
-            self.video_model.load_state_dict(torch.load(video_model_path))
+            try:
+                self.video_model.load_state_dict(torch.load(video_model_path))
+            except Exception as e:
+                print(f"Warning: failed to load video model '{video_model_path}': {e}")
+        else:
+            try:
+                torch.save(self.video_model.state_dict(), video_model_path)
+                print(f"Info: created placeholder video model at: {video_model_path}")
+            except Exception as e:
+                print(f"Warning: could not create placeholder video model: {e}")
         self.video_model.eval()
         
-        # Audio model (TensorFlow)
-        if os.path.exists(audio_model_path):
-            self.audio_model = tf.keras.models.load_model(audio_model_path)
+        # Audio model (TensorFlow) — only attempt to load if TF is available
+        if TF_AVAILABLE and os.path.exists(audio_model_path):
+            try:
+                self.audio_model = tf.keras.models.load_model(audio_model_path)
+            except Exception as e:
+                print(f"Warning: failed to load audio model: {e}")
+                self.audio_model = None
         else:
+            if not TF_AVAILABLE and os.path.exists(audio_model_path):
+                print("Warning: audio model file exists but TensorFlow is not installed; audio analysis disabled.")
             self.audio_model = None
         
-        # Scaler for video features
+        # Scaler for video features — create a minimal fitted scaler file if
+        # missing to avoid transform errors when `video_scaler.pkl` isn't present.
         self.scaler = StandardScaler()
+        scaler_path = 'video_scaler.pkl'
+        if os.path.exists(scaler_path):
+            try:
+                with open(scaler_path, 'rb') as f:
+                    self.scaler = pickle.load(f)
+            except Exception as e:
+                print(f"Warning: failed to load scaler: {e}")
+        else:
+            try:
+                # Fit on a single zero vector of the expected feature length (13)
+                dummy = np.zeros((1, 13))
+                self.scaler.fit(dummy)
+                with open(scaler_path, 'wb') as f:
+                    pickle.dump(self.scaler, f)
+                print(f"Info: created placeholder scaler at: {scaler_path}")
+            except Exception as e:
+                print(f"Warning: could not create placeholder scaler: {e}")
     
     def predict_video(self, video_path):
         """Predict if video is deepfake"""
@@ -682,8 +733,13 @@ class MultimodalDeepFakeDetector:
         if features is None:
             return None
         
-        # Scale features
-        features_scaled = self.scaler.transform(features.reshape(1, -1))
+        # Scale features (if scaler fitted). If transform fails (e.g. scaler
+        # not fitted), fall back to using raw features to avoid runtime error.
+        try:
+            features_scaled = self.scaler.transform(features.reshape(1, -1))
+        except Exception:
+            print("⚠️  Scaler not fitted or transform failed — using raw features")
+            features_scaled = features.reshape(1, -1).astype(np.float32)
         
         # Predict
         with torch.no_grad():

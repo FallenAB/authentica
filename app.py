@@ -28,54 +28,72 @@ def index():
     return render_template('index.html')
 
 @app.route('/upload', methods=['POST'])
-def upload_video():
-    """Handle video upload and analysis"""
-    
-    # Check if file was uploaded
-    if 'video' not in request.files:
-        return jsonify({'error': 'No video file provided'}), 400
-    
-    file = request.files['video']
-    
+def upload_file():
+    """Handle video or audio upload and analysis"""
+    # Accept both video and audio keys
+    file = request.files.get('video') or request.files.get('audio')
+    if not file:
+        return jsonify({'error': 'No file provided. Please upload a video or audio file.'}), 400
+
     # Check if file was selected
     if file.filename == '':
         return jsonify({'error': 'No file selected'}), 400
-    
-    # Check file extension
-    if not allowed_file(file.filename):
-        return jsonify({'error': 'Invalid file type. Allowed: mp4, avi, mov, mkv'}), 400
-    
+
+    ext = file.filename.rsplit('.', 1)[-1].lower()
+    is_video = ext in app.config['ALLOWED_EXTENSIONS']
+    is_audio = ext in {'wav', 'mp3'}
+    if not (is_video or is_audio):
+        return jsonify({'error': 'Invalid file type. Allowed: mp4, avi, mov, mkv, wav, mp3'}), 400
+
     try:
-        # Save uploaded file
         filename = secure_filename(file.filename)
         timestamp = str(int(os.times()[4] * 1000))
         unique_filename = f"{timestamp}_{filename}"
-        video_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
-        file.save(video_path)
-        
-        # Process video and get prediction
-        result = predict_video_with_audio_extraction(
-            video_path,
-            video_model_path='best_video_model.pth',
-            audio_model_path='best_audio_model.h5',
-            scaler_path='video_scaler.pkl'
-        )
-        
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+        file.save(file_path)
+
+        if is_video:
+            # Process video and get prediction
+            result = predict_video_with_audio_extraction(
+                file_path,
+                video_model_path='best_video_model.pth',
+                audio_model_path='best_audio_model.h5',
+                scaler_path='video_scaler.pkl'
+            )
+
+        else:
+            from predict import predict_single_audio
+            audio_result = predict_single_audio(file_path, model_path='best_audio_model.h5')
+            if not audio_result or not audio_result.get('success'):
+                result = {'error': audio_result.get('error', 'Could not process audio file.')}
+            else:
+                # Map backend keys to frontend expectations
+                prob = audio_result.get('probability')
+                label = 'DEEPFAKE' if prob > 0.5 else 'REAL'
+                result = {
+                    'video_prediction': None,
+                    'audio_prediction': prob,
+                    'final_prediction': label,
+                    'confidence': audio_result.get('confidence', 0),
+                    'video_label': None,
+                    'audio_label': label
+                }
+
         # Clean up uploaded file
         try:
-            os.remove(video_path)
-            # Also remove extracted audio if it exists
-            audio_path = video_path.rsplit('.', 1)[0] + '_audio.wav'
-            if os.path.exists(audio_path):
-                os.remove(audio_path)
+            os.remove(file_path)
+            if is_video:
+                audio_path = file_path.rsplit('.', 1)[0] + '_audio.wav'
+                if os.path.exists(audio_path):
+                    os.remove(audio_path)
         except:
             pass
-        
+
         if result is None:
-            return jsonify({'error': 'Could not process video. Please ensure video contains faces.'}), 400
-        
+            return jsonify({'error': 'Could not process file. Please ensure the file is valid.'}), 400
+
         return jsonify(result), 200
-    
+
     except Exception as e:
         return jsonify({'error': f'Processing error: {str(e)}'}), 500
 
