@@ -21,7 +21,7 @@
             justify-content: center;
             align-items: center;
             padding: 20px;
-            overflow: auto;  /* Changed from hidden to auto to allow scrolling */
+            overflow: auto;
             position: relative;
         }
 
@@ -174,6 +174,75 @@
             display: none;
         }
 
+        /* Thumbnail preview */
+        .thumbnail-preview {
+            display: none;
+            margin-bottom: 20px;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+
+        .thumbnail-preview.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        .thumbnail-preview img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .thumbnail-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.7) 100%);
+            display: flex;
+            align-items: flex-end;
+            padding: 15px;
+        }
+
+        .thumbnail-info {
+            color: white;
+            font-size: 0.9em;
+        }
+
+        .analyzing-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .analyzing-overlay.show {
+            display: flex;
+        }
+
+        .analyzing-text {
+            color: white;
+            font-size: 1.1em;
+            font-weight: 600;
+            margin-top: 15px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
         .analyze-btn {
             width: 100%;
             background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
@@ -271,12 +340,6 @@
             border-top: 4px solid #4facfe;
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin: 20px auto;
-            display: none;
-        }
-
-        .spinner.show {
-            display: block;
         }
 
         @keyframes spin {
@@ -492,8 +555,20 @@
                 </svg>
             </div>
             <div class="upload-text">Drop your video here or click to browse</div>
-            <div class="upload-hint">Supported formats: MP4, AVI, MKV, MOV<br>Max 50Mb</div>
+            <div class="upload-hint">Supported formats: MP4, AVI, MKV, MOV<br>Max 100MB</div>
             <input type="file" id="fileInput" accept="video/mp4,video/avi,video/x-msvideo,video/quicktime,video/x-matroska">
+        </div>
+
+        <!-- Thumbnail Preview -->
+        <div class="thumbnail-preview" id="thumbnailPreview">
+            <img id="thumbnailImg" src="" alt="Video thumbnail">
+            <div class="thumbnail-overlay">
+                <div class="thumbnail-info" id="thumbnailInfo">Ready to analyze</div>
+            </div>
+            <div class="analyzing-overlay" id="analyzingOverlay">
+                <div class="spinner"></div>
+                <div class="analyzing-text">Analyzing video...</div>
+            </div>
         </div>
 
         <div class="selected-file" id="selectedFile">
@@ -508,8 +583,6 @@
             </div>
         </div>
 
-        <div class="spinner" id="spinner"></div>
-
         <div class="error" id="error"></div>
 
         <div class="results" id="results">
@@ -521,7 +594,7 @@
                     <h3>Analysis Details</h3>
                     
                     <div class="detail-item">
-                        <span class="detail-label">📹 Video Analysis</span>
+                        <span class="detail-label">🎥 Video Analysis</span>
                         <span class="detail-value">
                             <span class="badge real" id="videoLabel">REAL</span>
                             <span id="videoProbability">(0.234)</span>
@@ -549,6 +622,7 @@
 
     <script>
         let selectedFile = null;
+        let currentThumbnailUrl = null;
 
         const uploadArea = document.getElementById('uploadArea');
         const fileInput = document.getElementById('fileInput');
@@ -557,9 +631,11 @@
         const analyzeBtn = document.getElementById('analyzeBtn');
         const progress = document.getElementById('progress');
         const progressFill = document.getElementById('progressFill');
-        const spinner = document.getElementById('spinner');
         const errorDiv = document.getElementById('error');
         const results = document.getElementById('results');
+        const thumbnailPreview = document.getElementById('thumbnailPreview');
+        const thumbnailImg = document.getElementById('thumbnailImg');
+        const analyzingOverlay = document.getElementById('analyzingOverlay');
 
         // Click to upload
         uploadArea.addEventListener('click', () => fileInput.click());
@@ -571,8 +647,40 @@
                 fileName.textContent = selectedFile.name;
                 selectedFileDiv.classList.add('show');
                 analyzeBtn.disabled = false;
+                
+                // Generate client-side preview (optional)
+                generateClientPreview(selectedFile);
             }
         });
+
+        // Generate client-side thumbnail preview
+        function generateClientPreview(file) {
+            const video = document.createElement('video');
+            video.preload = 'metadata';
+            
+            video.onloadeddata = function() {
+                // Seek to 1 second
+                video.currentTime = 1;
+            };
+            
+            video.onseeked = function() {
+                // Create canvas to capture frame
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // Convert to image
+                thumbnailImg.src = canvas.toDataURL('image/jpeg');
+                thumbnailPreview.classList.add('show');
+                
+                // Clean up
+                URL.revokeObjectURL(video.src);
+            };
+            
+            video.src = URL.createObjectURL(file);
+        }
 
         // Drag and drop
         uploadArea.addEventListener('dragover', (e) => {
@@ -593,6 +701,7 @@
                 fileName.textContent = selectedFile.name;
                 selectedFileDiv.classList.add('show');
                 analyzeBtn.disabled = false;
+                generateClientPreview(selectedFile);
             }
         });
 
@@ -606,9 +715,11 @@
             results.classList.remove('show');
             errorDiv.classList.remove('show');
             
+            // Show analyzing overlay on thumbnail
+            analyzingOverlay.classList.add('show');
+            
             // Show progress
             analyzeBtn.disabled = true;
-            spinner.classList.add('show');
             progress.classList.add('show');
             progressFill.style.width = '0%';
 
@@ -636,20 +747,30 @@
                 const data = await response.json();
 
                 setTimeout(() => {
-                    spinner.classList.remove('show');
+                    analyzingOverlay.classList.remove('show');
                     progress.classList.remove('show');
 
                     if (response.ok) {
+                        // Store thumbnail URL for later cleanup
+                        currentThumbnailUrl = data.thumbnail_url;
+                        
+                        // Update thumbnail if server generated one
+                        if (data.thumbnail_url) {
+                            thumbnailImg.src = data.thumbnail_url;
+                        }
+                        
                         displayResults(data);
                     } else {
+                        thumbnailPreview.classList.remove('show');
                         showError(data.error || 'An error occurred during analysis');
                     }
                 }, 500);
 
             } catch (error) {
                 clearInterval(progressInterval);
-                spinner.classList.remove('show');
+                analyzingOverlay.classList.remove('show');
                 progress.classList.remove('show');
+                thumbnailPreview.classList.remove('show');
                 showError('Network error: ' + error.message);
             }
         }
@@ -699,14 +820,45 @@
             analyzeBtn.disabled = false;
         }
 
+        async function deleteThumbnail(thumbnailUrl) {
+            if (!thumbnailUrl) return;
+            
+            try {
+                await fetch('/delete-thumbnail', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ thumbnail_url: thumbnailUrl })
+                });
+            } catch (error) {
+                console.error('Error deleting thumbnail:', error);
+            }
+        }
+
         function resetForm() {
+            // Delete current thumbnail from server
+            if (currentThumbnailUrl) {
+                deleteThumbnail(currentThumbnailUrl);
+                currentThumbnailUrl = null;
+            }
+            
             selectedFile = null;
             fileInput.value = '';
             selectedFileDiv.classList.remove('show');
             results.classList.remove('show');
             errorDiv.classList.remove('show');
+            thumbnailPreview.classList.remove('show');
+            analyzingOverlay.classList.remove('show');
             analyzeBtn.disabled = true;
         }
+
+        // Clean up on page unload
+        window.addEventListener('beforeunload', () => {
+            if (currentThumbnailUrl) {
+                deleteThumbnail(currentThumbnailUrl);
+            }
+        });
     </script>
 </body>
 </html>
