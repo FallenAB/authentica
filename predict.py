@@ -250,33 +250,35 @@ def predict_single_audio(audio_path, model_path='best_audio_model.h5'):
     """Predict if a single audio file is deepfake"""
     
     if not os.path.exists(audio_path):
-        return {
-            "success": False,
-            "error": f"Audio not found: {audio_path}"
-        }
-
+        print(f"❌ Audio not found: {audio_path}")
+        return
+    
+    print("\n" + "="*60)
+    print("AUDIO DEEPFAKE DETECTION")
+    print("="*60)
+    print(f"Analyzing: {audio_path}")
+    
     # Initialize detector
     detector = MultimodalDeepFakeDetector(
         video_model_path=None,  # Only audio
         audio_model_path=model_path
     )
-
+    
     # Predict
     prediction = detector.predict_audio(audio_path)
-
+    
     if prediction is None:
-        return {
-            "success": False,
-            "error": "Could not process audio"
-        }
-
-    # Return results as a dictionary
-    return {
-        "success": True,
-        "probability": float(prediction),
-        "prediction": "deepfake" if prediction > 0.5 else "real",
-        "confidence": round(abs(prediction - 0.5) * 200, 1)
-    }
+        print("❌ Could not process audio")
+        return
+    
+    # Display results
+    print("\n" + "-"*60)
+    print("RESULTS:")
+    print("-"*60)
+    print(f"Probability: {prediction:.4f}")
+    print(f"Prediction: {'🚨 DEEPFAKE' if prediction > 0.5 else '✅ REAL'}")
+    print(f"Confidence: {abs(prediction - 0.5) * 200:.1f}%")
+    print("="*60)
 
 
 def batch_predict_videos(video_dir, output_file='predictions.csv'):

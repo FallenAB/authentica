@@ -137,11 +137,10 @@ def train_video_pipeline(data_dir="data"):
     
     # Train model
     print("\nTraining video model...")
-    # Add early stopping and LR reduction for PyTorch (manual)
     model, history = train_video_model(
         X_train_scaled, y_train,
         X_val_scaled, y_val,
-        epochs=100,  # More epochs, but early stopping will halt if no improvement
+        epochs=50,
         batch_size=32
     )
     
@@ -175,11 +174,10 @@ def train_audio_pipeline(data_dir="data"):
     
     # Train model
     print("\nTraining audio model...")
-    # Add early stopping and LR reduction for TensorFlow (already in train_audio_model)
     model, history = train_audio_model(
         X_train, y_train,
         X_val, y_val,
-        epochs=100,  # More epochs, but early stopping will halt if no improvement
+        epochs=30,
         batch_size=32
     )
     
